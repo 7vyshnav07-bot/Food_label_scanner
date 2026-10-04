@@ -1,0 +1,3523 @@
+
+
+{% extends "base.html" %}
+
+
+
+{% block title %}NutriLens AI | Food Intelligence{% endblock %}
+
+
+
+{% block content %}
+
+
+
+<section class="hero">
+
+    <div class="hero-content">
+
+
+
+        <span class="hero-badge">
+
+            ✦ Powered by Azure AI Foundry
+
+        </span>
+
+
+
+        <h1>
+
+            Understand what's<br>
+
+            <span>inside your food.</span>
+
+        </h1>
+
+
+
+        <p>
+
+            Scan food labels, explore nutrition facts, understand
+
+            ingredients, and identify declared allergens with AI.
+
+        </p>
+
+
+
+        <div class="hero-stats">
+
+            <span>✦ AI Nutrition Analysis</span>
+
+            <span>✦ Ingredient Intelligence</span>
+
+            <span>✦ Allergen Detection</span>
+
+        </div>
+
+
+
+    </div>
+
+</section>
+
+
+
+<main class="container">
+
+
+
+    <!-- IMAGE SCANNER -->
+
+
+
+    <section class="scanner-card">
+
+
+
+        <div class="section-heading">
+
+            <div class="section-icon">📷</div>
+
+
+
+            <div>
+
+                <h2>AI Food Scanner</h2>
+
+                <p>Upload a clear image of your food packaging.</p>
+
+            </div>
+
+        </div>
+
+
+
+        <form id="visionForm" enctype="multipart/form-data">
+
+
+
+            <div class="upload-area" id="uploadArea">
+
+
+
+                <div class="upload-icon">⬆</div>
+
+
+
+                <h3>Drop your food label here</h3>
+
+
+
+                <p>Or select an image from your device</p>
+
+
+
+                <span>JPG · PNG · WEBP · Maximum 7 MB</span>
+
+
+
+                <input
+
+                    type="file"
+
+                    id="imageInput"
+
+                    name="image"
+
+                    accept="image/jpeg,image/png,image/webp"
+
+                    hidden
+
+                >
+
+
+
+                <button
+
+                    type="button"
+
+                    id="chooseBtn"
+
+                    class="choose-btn"
+
+                >
+
+                    Choose Image
+
+                </button>
+
+
+
+            </div>
+
+
+
+            <div
+
+                id="previewContainer"
+
+                class="preview-container"
+
+                style="display:none;"
+
+            >
+
+
+
+                <img id="imagePreview" alt="Selected food label">
+
+
+
+                <div class="preview-info">
+
+
+
+                    <h3>Selected Image</h3>
+
+
+
+                    <p id="fileName"></p>
+
+
+
+                    <button
+
+                        type="button"
+
+                        id="removeBtn"
+
+                        class="remove-btn"
+
+                    >
+
+                        Remove Image
+
+                    </button>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <button
+
+                type="submit"
+
+                id="scanBtn"
+
+                class="scan-btn"
+
+            >
+
+                ✨ Analyze Food Label
+
+            </button>
+
+
+
+        </form>
+
+
+
+        <div id="loading" class="loading" style="display:none;">
+
+
+
+            <div class="spinner"></div>
+
+
+
+            <h3>Analyzing your food...</h3>
+
+
+
+            <p>
+
+                Azure AI is extracting nutrition and ingredient information.
+
+            </p>
+
+
+
+        </div>
+
+
+
+        <div id="errorBox" class="error-box" style="display:none;">
+
+
+
+            <strong>⚠ Something went wrong</strong>
+
+
+
+            <p id="errorMessage"></p>
+
+
+
+        </div>
+
+
+
+    </section>
+
+
+
+
+
+    <!-- ANALYSIS DASHBOARD -->
+
+
+
+    <section
+
+        id="resultSection"
+
+        class="nutrition-dashboard"
+
+        style="display:none;"
+
+    >
+
+
+
+        <div class="dashboard-heading">
+
+
+
+            <div>
+
+                <span class="result-label">NUTRILENS AI REPORT</span>
+
+
+
+                <h2 id="productName">Food Analysis</h2>
+
+
+
+                <p id="productCategory"></p>
+
+            </div>
+
+
+
+            <span class="ai-badge">GPT-4.1-mini</span>
+
+
+
+        </div>
+
+        <!-- AI Food Health Score -->
+        <section class="health-score-panel" id="healthScorePanel">
+            <div class="health-score-header">
+                <div>
+                    <span class="health-score-eyebrow">NUTRILENS AI</span>
+                    <h3>AI Food Health Score</h3>
+                    <p>Informational assessment based on available nutrition data.</p>
+                </div>
+            </div>
+
+            <div class="health-score-content">
+                <div class="health-score-circle" id="healthScoreCircle">
+                    <div class="health-score-inner">
+                        <strong id="healthScoreValue">--</strong>
+                        <span>out of 100</span>
+                    </div>
+                </div>
+
+                <div class="health-score-details">
+                    <span class="health-score-category" id="healthScoreCategory">Waiting for analysis</span>
+                    <p id="healthScoreDescription">Scan a food label to calculate its nutritional score.</p>
+                    <p class="health-score-factors" id="healthScoreFactors">Nutrition factors will appear here.</p>
+                </div>
+            </div>
+
+            <p class="health-score-disclaimer">
+                This score is an informational estimate based on available label data.
+                It is not a medical assessment or a guarantee of food safety.
+            </p>
+        </section>
+
+        <!-- SUMMARY -->
+
+
+
+        <div class="summary-card">
+
+            <span class="summary-label">AI PRODUCT SUMMARY</span>
+
+            <p id="productSummary"></p>
+
+
+
+            <div class="serving-calculator">
+
+                <div class="serving-heading">
+
+                    <div>
+
+                        <h3>Serving Size Calculator</h3>
+
+                        <p id="servingSize">Serving size: Not available</p>
+
+                    </div>
+
+                    <span class="serving-icon">⚖️</span>
+
+                </div>
+
+
+
+                <div class="serving-control">
+
+                    <label for="servingMultiplier">Number of Servings</label>
+
+                    <div class="serving-input-row">
+
+                        <button type="button" id="decreaseServing" aria-label="Decrease servings">−</button>
+
+                        <input type="number" id="servingMultiplier"
+
+                               value="1" min="0.5" max="20" step="0.5"
+
+                               inputmode="decimal">
+
+                        <button type="button" id="increaseServing" aria-label="Increase servings">+</button>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="serving-results">
+
+                    <div class="serving-result-item">
+
+                        <span>Calories</span><strong id="calcCalories">—</strong><small>kcal</small>
+
+                    </div>
+
+                    <div class="serving-result-item">
+
+                        <span>Protein</span><strong id="calcProtein">—</strong><small>g</small>
+
+                    </div>
+
+                    <div class="serving-result-item">
+
+                        <span>Carbohydrates</span><strong id="calcCarbs">—</strong><small>g</small>
+
+                    </div>
+
+                    <div class="serving-result-item">
+
+                        <span>Total Fat</span><strong id="calcFat">—</strong><small>g</small>
+
+                    </div>
+
+                    <div class="serving-result-item">
+
+                        <span>Total Sugar</span><strong id="calcSugar">—</strong><small>g</small>
+
+                    </div>
+
+                    <div class="serving-result-item">
+
+                        <span>Sodium</span><strong id="calcSodium">—</strong><small>mg</small>
+
+                    </div>
+
+                </div>
+
+
+
+                <p class="calculator-note">
+
+                    Values are scaled from the nutrition information extracted from the label.
+
+                    Missing values remain unavailable.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+
+
+        <!-- NUTRITION CARDS -->
+
+
+
+        <h3 class="dashboard-section-title">
+
+            Nutrition Facts
+
+        </h3>
+
+
+
+        <div class="nutrition-grid">
+
+
+
+            <div class="nutrition-card calories-card">
+
+
+
+                <span>🔥</span>
+
+
+
+                <p>Calories</p>
+
+
+
+                <h2 id="caloriesValue">—</h2>
+
+
+
+                <small>kcal</small>
+
+
+
+                <div class="dv-info" id="caloriesDv">
+
+                    Daily energy value
+
+                </div>
+
+
+
+            </div>
+
+
+
+
+
+            <div class="nutrition-card">
+
+
+
+                <span>💪</span>
+
+
+
+                <p>Protein</p>
+
+
+
+                <h2 id="proteinValue">—</h2>
+
+
+
+                <small>grams</small>
+
+
+
+                <div class="dv-info" id="proteinDv">
+
+                    Daily Value: —
+
+                </div>
+
+
+
+                <div class="dv-track">
+
+                    <div class="dv-fill" id="proteinBar"></div>
+
+                </div>
+
+
+
+            </div>
+
+
+
+
+
+            <div class="nutrition-card">
+
+
+
+                <span>🌾</span>
+
+
+
+                <p>Carbohydrates</p>
+
+
+
+                <h2 id="carbsValue">—</h2>
+
+
+
+                <small>grams</small>
+
+
+
+                <div class="dv-info" id="carbsDv">
+
+                    Daily Value: —
+
+                </div>
+
+
+
+                <div class="dv-track">
+
+                    <div class="dv-fill" id="carbsBar"></div>
+
+                </div>
+
+
+
+            </div>
+
+
+
+
+
+            <div class="nutrition-card">
+
+
+
+                <span>🥑</span>
+
+
+
+                <p>Total Fat</p>
+
+
+
+                <h2 id="fatValue">—</h2>
+
+
+
+                <small>grams</small>
+
+
+
+                <div class="dv-info" id="fatDv">
+
+                    Daily Value: —
+
+                </div>
+
+
+
+                <div class="dv-track">
+
+                    <div class="dv-fill" id="fatBar"></div>
+
+                </div>
+
+
+
+            </div>
+
+
+
+
+
+            <div class="nutrition-card">
+
+
+
+                <span>🍬</span>
+
+
+
+                <p>Total Sugar</p>
+
+
+
+                <h2 id="sugarValue">—</h2>
+
+
+
+                <small>grams</small>
+
+
+
+                <div class="dv-info" id="sugarDv">
+
+                    No established total-sugar DV
+
+                </div>
+
+
+
+            </div>
+
+
+
+
+
+            <div class="nutrition-card">
+
+
+
+                <span>🧂</span>
+
+
+
+                <p>Sodium</p>
+
+
+
+                <h2 id="sodiumValue">—</h2>
+
+
+
+                <small>mg</small>
+
+
+
+                <div class="dv-info" id="sodiumDv">
+
+                    Daily Value: —
+
+                </div>
+
+
+
+                <div class="dv-track">
+
+                    <div class="dv-fill" id="sodiumBar"></div>
+
+                </div>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+
+
+        <!-- CHART -->
+
+
+
+        <div class="dashboard-panel">
+
+
+
+            <div class="panel-heading">
+
+
+
+                <div>
+
+                    <h3>Macronutrient Breakdown</h3>
+
+                    <p>Based on selected serving quantity</p>
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="chart-container">
+
+                <canvas id="nutritionChart"></canvas>
+
+            </div>
+
+
+
+            <p class="chart-note">
+
+                Chart displays available protein, carbohydrate,
+
+                and fat values in grams. Missing values are excluded.
+
+            </p>
+
+
+
+        </div>
+
+
+
+
+
+        <!-- SECONDARY NUTRITION -->
+
+
+
+        <div class="dashboard-panel">
+
+
+
+            <h3>Additional Nutrition Details</h3>
+
+
+
+            <div class="detail-grid">
+
+
+
+                <div class="detail-item">
+
+                    <span>Saturated Fat</span>
+
+                    <strong id="saturatedFatValue">—</strong>
+
+                </div>
+
+
+
+                <div class="detail-item">
+
+                    <span>Trans Fat</span>
+
+                    <strong id="transFatValue">—</strong>
+
+                </div>
+
+
+
+                <div class="detail-item">
+
+                    <span>Fiber</span>
+
+                    <strong id="fiberValue">—</strong>
+
+                </div>
+
+
+
+                <div class="detail-item">
+
+                    <span>Added Sugar</span>
+
+                    <strong id="addedSugarValue">—</strong>
+
+                </div>
+
+
+
+                <div class="detail-item">
+
+                    <span>Cholesterol</span>
+
+                    <strong id="cholesterolValue">—</strong>
+
+                </div>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+
+
+        <!-- INGREDIENTS -->
+
+
+
+        <div class="dashboard-panel">
+
+
+
+            <div class="panel-heading">
+
+
+
+                <div>
+
+                    <h3>🧾 Ingredient Intelligence</h3>
+
+                    <p>Ingredients extracted from the food label</p>
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div id="ingredientList" class="ingredient-list"></div>
+
+
+
+            <h4 class="subheading">
+
+                Additives and Their Functions
+
+            </h4>
+
+
+
+            <div id="additiveList" class="additive-list"></div>
+
+
+
+        </div>
+
+
+
+
+
+        <!-- ALLERGENS -->
+
+
+
+        <div class="dashboard-panel allergen-panel">
+
+
+
+            <h3>⚠ Allergen Detection</h3>
+
+
+
+            <p class="panel-description">
+
+                Potential allergens and allergen statements identified
+
+                from this product's extracted ingredients and label text.
+
+            </p>
+
+
+
+            <div id="allergenStatus" class="allergen-status" role="status">
+
+                Allergen analysis will appear here after scanning.
+
+            </div>
+
+
+
+            <div id="allergenList" class="allergen-list"></div>
+
+
+
+            <p class="disclaimer">
+
+                This AI-assisted scan may miss text or misread an image.
+
+                No detected allergen does not mean the product is allergen-free.
+
+                Always check the original package and contact the manufacturer
+
+                when needed, especially for severe allergies.
+
+            </p>
+
+
+
+        </div>
+
+
+
+
+
+        <!-- AI OBSERVATIONS -->
+
+
+
+        <div class="dashboard-panel">
+
+
+
+            <h3>✨ AI Nutrition Insights</h3>
+
+
+
+            <div id="observationList" class="observation-list"></div>
+
+
+
+        </div>
+
+
+
+
+
+        <!-- LABEL NOTES -->
+
+
+
+        <div
+
+            class="dashboard-panel"
+
+            id="labelNotesPanel"
+
+            style="display:none;"
+
+        >
+
+
+
+            <h3>Label Quality and Missing Information</h3>
+
+
+
+            <div id="labelNotes"></div>
+
+
+
+        </div>
+
+
+
+
+
+        <div class="dashboard-actions">
+
+
+
+            <button
+
+                type="button"
+
+                id="newScanBtn"
+
+                class="secondary-btn"
+
+            >
+
+                Scan Another Product
+
+            </button>
+
+
+
+        </div>
+
+
+
+    </section>
+
+
+
+
+
+    <!-- FOOD CHATBOT -->
+
+
+
+    <section
+
+        id="chatbotSection"
+
+        class="chatbot-card"
+
+        style="display:none;"
+
+    >
+
+
+
+        <div class="chatbot-header">
+
+
+
+            <div>
+
+                <span class="result-label">NUTRILENS ASSISTANT</span>
+
+
+
+                <h2>Ask about this food</h2>
+
+
+
+                <p>Get explanations based on the analyzed label.</p>
+
+            </div>
+
+
+
+            <span class="chatbot-icon">🤖</span>
+
+
+
+        </div>
+
+
+
+
+
+        <div id="chatMessages" class="chat-messages">
+
+
+
+            <div class="bot-message">
+
+
+
+                <div class="message-content">
+
+
+
+                    <strong>NutriLens AI</strong>
+
+
+
+                    <p>
+
+                        Your food label has been analyzed.
+
+                        Ask me about its nutrition, ingredients,
+
+                        or declared allergens.
+
+                    </p>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+
+
+        <div class="suggested-questions">
+
+
+
+            <button type="button" class="suggestion-btn">
+
+                Explain the sugar content
+
+            </button>
+
+
+
+            <button type="button" class="suggestion-btn">
+
+                What do these ingredients mean?
+
+            </button>
+
+
+
+            <button type="button" class="suggestion-btn">
+
+                Explain the protein content
+
+            </button>
+
+
+
+        </div>
+
+
+
+
+
+        <form id="chatForm" class="chat-form">
+
+
+
+            <input
+
+                type="text"
+
+                id="chatQuestion"
+
+                placeholder="Ask about this food..."
+
+                autocomplete="off"
+
+                required
+
+            >
+
+
+
+            <button type="submit" id="chatSendBtn">
+
+                Send ➤
+
+            </button>
+
+
+
+        </form>
+
+
+
+    </section>
+
+
+
+
+
+    <!-- FEATURES -->
+
+
+
+    <section class="features">
+
+
+
+        <div class="feature-card">
+
+
+
+            <div class="feature-icon">🥗</div>
+
+
+
+            <h3>Nutrition Intelligence</h3>
+
+
+
+            <p>
+
+                Extract and visualize nutritional information.
+
+            </p>
+
+
+
+        </div>
+
+
+
+
+
+        <div class="feature-card">
+
+
+
+            <div class="feature-icon">🧾</div>
+
+
+
+            <h3>Ingredient Explainer</h3>
+
+
+
+            <p>
+
+                Understand ingredients and their common functions.
+
+            </p>
+
+
+
+        </div>
+
+
+
+
+
+        <div class="feature-card">
+
+
+
+            <div class="feature-icon">🛡️</div>
+
+
+
+            <h3>Allergen Detection</h3>
+
+
+
+            <p>
+
+                Identify allergens mentioned in the label.
+
+            </p>
+
+
+
+        </div>
+
+
+
+    </section>
+
+
+
+
+
+    <!-- TEXT ANALYZER -->
+
+
+
+    <section class="text-analyzer-banner">
+
+
+
+        <div>
+
+
+
+            <span>ALTERNATIVE ANALYSIS</span>
+
+
+
+            <h2>Have the food label text?</h2>
+
+
+
+            <p>
+
+                Paste ingredients or nutrition information for analysis.
+
+            </p>
+
+
+
+        </div>
+
+
+
+        <a
+
+            href="{{ url_for('text_analysis') }}"
+
+            class="text-btn"
+
+        >
+
+            Open Text Analyzer →
+
+        </a>
+
+
+
+    </section>
+
+
+
+</main>
+
+
+
+{% endblock %}
+
+
+
+
+
+{% block scripts %}
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+
+
+<script>
+
+
+
+// GLOBAL STATE
+
+
+
+let currentFoodAnalysis = null;
+
+let nutritionChart = null;
+
+
+
+// SERVING SIZE CALCULATOR
+
+const servingMultiplier = document.getElementById("servingMultiplier");
+
+
+
+const servingFields = [
+
+    ["calories", "calcCalories"],
+
+    ["protein", "calcProtein"],
+
+    ["carbohydrates", "calcCarbs"],
+
+    ["total_fat", "calcFat"],
+
+    ["total_sugars", "calcSugar"],
+
+    ["sodium", "calcSodium"]
+
+];
+
+
+
+function getServingCount() {
+
+    const value = Number(servingMultiplier.value);
+
+    if (!Number.isFinite(value)) return 1;
+
+    return Math.min(20, Math.max(0.5, value));
+
+}
+
+
+
+function scaleNutrition(item) {
+
+    if (!item || item.value === null || item.value === undefined || item.value === "") {
+
+        return item;
+
+    }
+
+
+
+    const value = Number(item.value);
+
+    if (!Number.isFinite(value)) return item;
+
+
+
+    return {
+
+        ...item,
+
+        value: Math.round(value * getServingCount() * 100) / 100
+
+    };
+
+}
+
+
+
+function calculateServingNutrition() {
+
+    if (!currentFoodAnalysis) return;
+
+
+
+    const multiplier = getServingCount();
+
+    servingMultiplier.value = multiplier;
+
+
+
+    const nutrition = currentFoodAnalysis.nutrition || {};
+
+    servingFields.forEach(([field, elementId]) => {
+
+        const item = nutrition[field];
+
+        const element = document.getElementById(elementId);
+
+
+
+        if (!item || item.value === null || item.value === undefined || item.value === "") {
+
+            element.textContent = "N/A";
+
+            return;
+
+        }
+
+
+
+        const value = Number(item.value);
+
+        element.textContent = Number.isFinite(value)
+
+            ? String(Number((value * multiplier).toFixed(2)))
+
+            : "N/A";
+
+    });
+
+
+
+    updateServingNutrition();
+
+}
+
+
+
+servingMultiplier.addEventListener("input", calculateServingNutrition);
+
+
+
+document.getElementById("increaseServing").addEventListener("click", () => {
+
+    servingMultiplier.value = Math.min(20, getServingCount() + 0.5);
+
+    calculateServingNutrition();
+
+});
+
+
+
+document.getElementById("decreaseServing").addEventListener("click", () => {
+
+    servingMultiplier.value = Math.max(0.5, getServingCount() - 0.5);
+
+    calculateServingNutrition();
+
+});
+
+
+
+// DOM ELEMENTS
+
+
+
+const imageInput = document.getElementById("imageInput");
+
+const uploadArea = document.getElementById("uploadArea");
+
+const chooseBtn = document.getElementById("chooseBtn");
+
+const previewContainer = document.getElementById("previewContainer");
+
+const imagePreview = document.getElementById("imagePreview");
+
+const fileName = document.getElementById("fileName");
+
+const removeBtn = document.getElementById("removeBtn");
+
+
+
+const visionForm = document.getElementById("visionForm");
+
+const scanBtn = document.getElementById("scanBtn");
+
+const loading = document.getElementById("loading");
+
+const errorBox = document.getElementById("errorBox");
+
+const errorMessage = document.getElementById("errorMessage");
+
+
+
+const resultSection = document.getElementById("resultSection");
+
+const chatbotSection = document.getElementById("chatbotSection");
+
+
+
+
+
+// IMAGE SELECTION
+
+
+
+chooseBtn.addEventListener("click", () => {
+
+    imageInput.click();
+
+});
+
+
+
+uploadArea.addEventListener("click", (event) => {
+
+
+
+    if (event.target.closest("button")) return;
+
+
+
+    imageInput.click();
+
+
+
+});
+
+
+
+imageInput.addEventListener("change", () => {
+
+
+
+    if (imageInput.files.length > 0) {
+
+        showPreview(imageInput.files[0]);
+
+    }
+
+
+
+});
+
+
+
+
+
+// IMAGE PREVIEW
+
+
+
+function showPreview(file) {
+
+
+
+    const allowedTypes = [
+
+        "image/jpeg",
+
+        "image/png",
+
+        "image/webp"
+
+    ];
+
+
+
+    if (!allowedTypes.includes(file.type)) {
+
+        showError("Please select a JPG, PNG, or WEBP image.");
+
+        return;
+
+    }
+
+
+
+    if (file.size > 7 * 1024 * 1024) {
+
+        showError("Please select an image smaller than 7 MB.");
+
+        return;
+
+    }
+
+
+
+    const reader = new FileReader();
+
+
+
+    reader.onload = (event) => {
+
+
+
+        imagePreview.src = event.target.result;
+
+
+
+        fileName.textContent = file.name;
+
+
+
+        previewContainer.style.display = "flex";
+
+        uploadArea.style.display = "none";
+
+
+
+        errorBox.style.display = "none";
+
+
+
+    };
+
+
+
+    reader.readAsDataURL(file);
+
+
+
+}
+
+
+
+
+
+// REMOVE IMAGE
+
+
+
+removeBtn.addEventListener("click", () => {
+
+
+
+    imageInput.value = "";
+
+    imagePreview.src = "";
+
+
+
+    previewContainer.style.display = "none";
+
+    uploadArea.style.display = "block";
+
+
+
+});
+
+
+
+
+
+// DRAG AND DROP
+
+
+
+uploadArea.addEventListener("dragover", (event) => {
+
+
+
+    event.preventDefault();
+
+
+
+    uploadArea.classList.add("dragging");
+
+
+
+});
+
+
+
+uploadArea.addEventListener("dragleave", () => {
+
+
+
+    uploadArea.classList.remove("dragging");
+
+
+
+});
+
+
+
+uploadArea.addEventListener("drop", (event) => {
+
+
+
+    event.preventDefault();
+
+
+
+    uploadArea.classList.remove("dragging");
+
+
+
+    const file = event.dataTransfer.files[0];
+
+
+
+    if (!file) return;
+
+
+
+    const transfer = new DataTransfer();
+
+
+
+    transfer.items.add(file);
+
+
+
+    imageInput.files = transfer.files;
+
+
+
+    showPreview(file);
+
+
+
+});
+
+
+
+
+
+// ERROR DISPLAY
+
+
+
+function showError(message) {
+
+
+
+    errorMessage.textContent = message;
+
+
+
+    errorBox.style.display = "block";
+
+
+
+}
+
+
+
+
+
+// SAFE DISPLAY HELPERS
+
+
+
+function setText(id, value) {
+
+
+
+    document.getElementById(id).textContent =
+
+        value === null || value === undefined || value === ""
+
+            ? "Not available"
+
+            : value;
+
+
+
+}
+
+
+
+
+
+function getNutritionValue(item) {
+
+
+
+    if (
+
+        !item ||
+
+        item.value === null ||
+
+        item.value === undefined
+
+    ) {
+
+        return null;
+
+    }
+
+
+
+    const number = Number(item.value);
+
+
+
+    return Number.isFinite(number) ? number : null;
+
+
+
+}
+
+
+
+
+
+function formatNutrition(item) {
+
+
+
+    if (
+
+        !item ||
+
+        item.value === null ||
+
+        item.value === undefined
+
+    ) {
+
+        return "Not available";
+
+    }
+
+
+
+    return `${item.value} ${item.unit || ""}`.trim();
+
+
+
+}
+
+
+
+
+
+// DAILY VALUE REFERENCE VALUES
+
+
+
+const DAILY_VALUES = {
+
+
+
+    protein: 50,
+
+    carbohydrates: 275,
+
+    total_fat: 78,
+
+    sodium: 2300,
+
+    fiber: 28,
+
+    saturated_fat: 20,
+
+    added_sugars: 50,
+
+    cholesterol: 300
+
+
+
+};
+
+
+
+
+
+function calculateDV(nutrient, item) {
+
+
+
+    const value = getNutritionValue(item);
+
+
+
+    const dailyValue = DAILY_VALUES[nutrient];
+
+
+
+    if (value === null || !dailyValue) {
+
+        return null;
+
+    }
+
+
+
+    return Math.round((value / dailyValue) * 100);
+
+
+
+}
+
+
+
+
+
+function updateDV(nutrient, item, labelId, barId) {
+
+
+
+    const percentage = calculateDV(nutrient, item);
+
+
+
+    const label = document.getElementById(labelId);
+
+
+
+    const bar = barId
+
+        ? document.getElementById(barId)
+
+        : null;
+
+
+
+    if (percentage === null) {
+
+
+
+        label.textContent = "Daily Value: Not available";
+
+
+
+        if (bar) {
+
+            bar.style.width = "0%";
+
+        }
+
+
+
+        return;
+
+
+
+    }
+
+
+
+    label.textContent = `${percentage}% of Daily Value`;
+
+
+
+    if (bar) {
+
+
+
+        bar.style.width =
+
+            `${Math.min(percentage, 100)}%`;
+
+
+
+    }
+
+
+
+}
+
+
+
+
+
+// SERVING SIZE CALCULATOR
+
+
+
+function updateServingNutrition() {
+
+    if (!currentFoodAnalysis) return;
+
+
+
+    const nutrition = currentFoodAnalysis.nutrition || {};
+
+    const calories = scaleNutrition(nutrition.calories);
+
+    const protein = scaleNutrition(nutrition.protein);
+
+    const carbs = scaleNutrition(nutrition.carbohydrates);
+
+    const fat = scaleNutrition(nutrition.total_fat);
+
+    const sugar = scaleNutrition(nutrition.total_sugars);
+
+    const sodium = scaleNutrition(nutrition.sodium);
+
+
+
+    setText("caloriesValue", formatNutrition(calories));
+
+    setText("proteinValue", formatNutrition(protein));
+
+    setText("carbsValue", formatNutrition(carbs));
+
+    setText("fatValue", formatNutrition(fat));
+
+    setText("sugarValue", formatNutrition(sugar));
+
+    setText("sodiumValue", formatNutrition(sodium));
+
+
+
+    setText("saturatedFatValue", formatNutrition(scaleNutrition(nutrition.saturated_fat)));
+
+    setText("transFatValue", formatNutrition(scaleNutrition(nutrition.trans_fat)));
+
+    setText("fiberValue", formatNutrition(scaleNutrition(nutrition.fiber)));
+
+    setText("addedSugarValue", formatNutrition(scaleNutrition(nutrition.added_sugars)));
+
+    setText("cholesterolValue", formatNutrition(scaleNutrition(nutrition.cholesterol)));
+
+
+
+    updateDV("protein", protein, "proteinDv", "proteinBar");
+
+    updateDV("carbohydrates", carbs, "carbsDv", "carbsBar");
+
+    updateDV("total_fat", fat, "fatDv", "fatBar");
+
+    updateDV("sodium", sodium, "sodiumDv", "sodiumBar");
+
+
+
+    renderChart({
+
+        protein: protein,
+
+        carbohydrates: carbs,
+
+        total_fat: fat
+
+    });
+
+}
+
+
+
+
+
+function renderHealthScore(healthScore) {
+
+    const panel = document.getElementById("healthScorePanel");
+
+
+
+    if (!panel) {
+
+        console.error("Health Score panel not found!");
+
+        return;
+
+    }
+
+
+
+    const scoreValue = document.getElementById("healthScoreValue");
+
+    const category = document.getElementById("healthScoreCategory");
+
+    const description = document.getElementById("healthScoreDescription");
+
+    const factors = document.getElementById("healthScoreFactors");
+
+    const circle = document.getElementById("healthScoreCircle");
+
+
+
+    if (!scoreValue || !category || !description || !factors || !circle) {
+
+        console.error("Missing Health Score HTML element:", {
+
+            scoreValue,
+
+            category,
+
+            description,
+
+            factors,
+
+            circle
+
+        });
+
+        return;
+
+    }
+
+
+
+    if (!healthScore || healthScore.score == null) {
+
+        scoreValue.textContent = "--";
+
+        category.textContent = "Insufficient data";
+
+        description.textContent =
+
+            "Not enough nutrition information is available to calculate a score.";
+
+        factors.textContent = "More nutrition values are required.";
+
+        circle.style.setProperty("--score-progress", "0deg");
+
+        return;
+
+    }
+
+
+
+    const score = Number(healthScore.score);
+
+
+
+    scoreValue.textContent = score;
+
+    category.textContent = healthScore.category || "Nutritional assessment";
+
+
+
+    description.textContent =
+
+        "This estimate is based on the nutrition values available on the food label.";
+
+
+
+    factors.textContent =
+
+        `Available nutrition factors: ${healthScore.available_factors ?? "N/A"} of ${healthScore.total_factors ?? "N/A"}`;
+
+
+
+    circle.style.setProperty("--score-progress", `${score * 3.6}deg`);
+
+}
+
+
+
+
+function saveScanToHistory(analysis, productName, productCategory) {
+    const storageKey = "nutrilens_history";
+
+    try {
+        const savedHistory = JSON.parse(
+            localStorage.getItem(storageKey) || "[]"
+        );
+
+        const scoreData = analysis.health_score || {};
+
+        const historyItem = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            product_name: productName,
+            category: productCategory,
+            date: new Date().toISOString(),
+            health_score: scoreData.score ?? null,
+            health_category: scoreData.category || "Not available",
+            analysis: analysis
+        };
+
+        savedHistory.unshift(historyItem);
+
+        // Keep the latest 50 scans
+        localStorage.setItem(
+            storageKey,
+            JSON.stringify(savedHistory.slice(0, 50))
+        );
+
+        console.log("Scan saved to history:", productName);
+
+    } catch (error) {
+        console.error("Could not save scan history:", error);
+    }
+}
+
+
+// RENDER ANALYSIS
+
+
+
+function renderAnalysis(data) {
+
+
+
+    currentFoodAnalysis = data;
+
+    renderHealthScore(data.health_score);
+
+    servingMultiplier.value = "1";
+
+
+
+    const nutrition = data.nutrition || {};
+
+
+
+
+
+    // PRODUCT IDENTIFICATION
+
+
+
+    const productName =
+
+        data.product_name &&
+
+        data.product_name.toLowerCase() !== "not available"
+
+            ? data.product_name
+
+            : "Food Product";
+
+
+
+    const productCategory =
+
+        data.category &&
+
+        data.category.toLowerCase() !== "not available"
+
+            ? data.category
+
+            : "Nutrition Analysis";
+
+
+
+    setText("productName", productName);
+    setText("productCategory", productCategory);
+    saveScanToHistory(data, productName, productCategory);
+console.log("HISTORY CHECK:", localStorage.getItem("nutrilens_history"));
+
+
+    setText("productSummary", data.summary);
+
+
+
+
+
+    // SERVING SIZE
+
+
+
+    setText(
+
+        "servingSize",
+
+        `Serving size: ${data.serving_size || "Not available"}`
+
+    );
+
+
+
+
+
+    // NUTRITION AND SERVING CALCULATOR
+
+
+
+// SHOW DASHBOARD BEFORE INITIALIZING CHART
+
+resultSection.style.display = "block";
+
+// NUTRITION AND SERVING CALCULATOR
+
+calculateServingNutrition();
+
+// OTHER SECTIONS
+
+renderIngredients(data.ingredients || []);
+
+renderAdditives(data.additives || []);
+
+renderAllergens(
+    data.allergens_declared_or_identified || []
+);
+
+renderObservations(
+    data.nutrition_observations || []
+);
+
+renderLabelNotes(data.label_notes || []);
+
+// SHOW CHATBOT
+
+chatbotSection.style.display = "block";
+
+// SCROLL TO RESULTS
+
+resultSection.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+});
+
+
+    // SHOW RESULTS
+
+
+
+    resultSection.style.display = "block";
+
+
+
+    chatbotSection.style.display = "block";
+
+
+
+    resultSection.scrollIntoView({
+
+
+
+        behavior: "smooth",
+
+
+
+        block: "start"
+
+
+
+    });
+
+
+
+}
+
+
+
+
+
+// INGREDIENTS
+
+
+
+function renderIngredients(ingredients) {
+
+
+
+    const container =
+
+        document.getElementById("ingredientList");
+
+
+
+    container.replaceChildren();
+
+
+
+    if (!ingredients.length) {
+
+
+
+        container.textContent =
+
+            "No ingredients were extracted.";
+
+
+
+        return;
+
+
+
+    }
+
+
+
+    ingredients.forEach((ingredient) => {
+
+
+
+        const tag = document.createElement("span");
+
+
+
+        tag.className = "ingredient-tag";
+
+
+
+        tag.textContent = ingredient;
+
+
+
+        container.appendChild(tag);
+
+
+
+    });
+
+
+
+}
+
+
+
+
+
+// ADDITIVES
+
+
+
+function renderAdditives(additives) {
+
+
+
+    const container =
+
+        document.getElementById("additiveList");
+
+
+
+    container.replaceChildren();
+
+
+
+    if (!additives.length) {
+
+
+
+        container.textContent =
+
+            "No additives were identified.";
+
+
+
+        return;
+
+
+
+    }
+
+
+
+    additives.forEach((item) => {
+
+
+
+        const card = document.createElement("div");
+
+
+
+        card.className = "additive-item";
+
+
+
+        const name = document.createElement("strong");
+
+
+
+        name.textContent =
+
+            item.name || "Unknown ingredient";
+
+
+
+        const description = document.createElement("p");
+
+
+
+        description.textContent =
+
+            item.common_function || "Function not available";
+
+
+
+        card.append(name, description);
+
+
+
+        container.appendChild(card);
+
+
+
+    });
+
+
+
+}
+
+
+
+
+
+// ALLERGEN DETECTION DISPLAY
+
+function renderAllergens(allergens) {
+
+    const container = document.getElementById("allergenList");
+
+    const status = document.getElementById("allergenStatus");
+
+
+
+    container.replaceChildren();
+
+
+
+    const entries = Array.isArray(allergens) ? allergens : [];
+
+
+
+    if (!entries.length) {
+
+        status.textContent =
+
+            "No specific allergen was identified in the extracted label information. Check the package directly; the scan may be incomplete.";
+
+        status.className = "allergen-status allergen-status-unknown";
+
+        return;
+
+    }
+
+
+
+    status.textContent =
+
+        "Review the findings below against the product's original allergen declaration.";
+
+    status.className = "allergen-status allergen-status-warning";
+
+
+
+    entries.forEach((entry) => {
+
+        let name = "";
+
+        let evidence = "";
+
+
+
+        if (typeof entry === "string") {
+
+            name = entry;
+
+        } else if (entry && typeof entry === "object") {
+
+            name = entry.name || entry.allergen || entry.item || "Potential allergen";
+
+            evidence = entry.evidence || entry.source || entry.note || entry.status || "";
+
+        } else {
+
+            return;
+
+        }
+
+
+
+        const card = document.createElement("div");
+
+        card.className = "allergen-result-item";
+
+
+
+        const tag = document.createElement("strong");
+
+        tag.className = "allergen-tag";
+
+        tag.textContent = `⚠ ${name}`;
+
+
+
+        card.appendChild(tag);
+
+
+
+        if (evidence) {
+
+            const detail = document.createElement("p");
+
+            detail.textContent = evidence;
+
+            card.appendChild(detail);
+
+        }
+
+
+
+        container.appendChild(card);
+
+    });
+
+
+
+    if (!container.childElementCount) {
+
+        status.textContent =
+
+            "Allergen information could not be interpreted reliably. Please inspect the original package.";
+
+        status.className = "allergen-status allergen-status-unknown";
+
+    }
+
+}
+
+
+
+
+
+// NUTRITION OBSERVATIONS
+
+
+
+function renderObservations(observations) {
+
+
+
+    const container =
+
+        document.getElementById("observationList");
+
+
+
+    container.replaceChildren();
+
+
+
+    if (!observations.length) {
+
+
+
+        container.textContent =
+
+            "No additional observations available.";
+
+
+
+        return;
+
+
+
+    }
+
+
+
+    observations.forEach((observation) => {
+
+
+
+        const item = document.createElement("div");
+
+
+
+        item.className = "observation-item";
+
+
+
+        item.textContent = `✦ ${observation}`;
+
+
+
+        container.appendChild(item);
+
+
+
+    });
+
+
+
+}
+
+
+
+
+
+// LABEL NOTES
+
+
+
+function renderLabelNotes(notes) {
+
+
+
+    const panel =
+
+        document.getElementById("labelNotesPanel");
+
+
+
+    const container =
+
+        document.getElementById("labelNotes");
+
+
+
+    container.replaceChildren();
+
+
+
+    if (!notes.length) {
+
+
+
+        panel.style.display = "none";
+
+
+
+        return;
+
+
+
+    }
+
+
+
+    panel.style.display = "block";
+
+
+
+    notes.forEach((note) => {
+
+
+
+        const item = document.createElement("p");
+
+
+
+        item.textContent = `• ${note}`;
+
+
+
+        container.appendChild(item);
+
+
+
+    });
+
+
+
+}
+
+
+
+
+
+// CHART
+
+
+
+function renderChart(nutrition) {
+
+
+
+    const labels = [];
+
+
+
+    const values = [];
+
+
+
+    const fields = [
+
+
+
+        ["Protein", nutrition.protein],
+
+
+
+        ["Carbohydrates", nutrition.carbohydrates],
+
+
+
+        ["Fat", nutrition.total_fat]
+
+
+
+    ];
+
+
+
+    fields.forEach(([label, item]) => {
+
+
+
+        const value = getNutritionValue(item);
+
+
+
+        if (value !== null && value >= 0) {
+
+
+
+            labels.push(label);
+
+
+
+            values.push(value);
+
+
+
+        }
+
+
+
+    });
+
+
+
+
+
+    if (nutritionChart) {
+
+
+
+        nutritionChart.destroy();
+
+
+
+        nutritionChart = null;
+
+
+
+    }
+
+
+
+
+
+    const canvas =
+
+        document.getElementById("nutritionChart");
+
+
+
+    if (!labels.length) {
+
+
+
+        canvas.style.display = "none";
+
+
+
+        return;
+
+
+
+    }
+
+
+
+    canvas.style.display = "block";
+
+
+
+
+
+    if (typeof Chart === "undefined") {
+
+
+
+        console.warn("Chart.js could not be loaded.");
+
+
+
+        return;
+
+
+
+    }
+
+
+
+
+
+    nutritionChart = new Chart(canvas, {
+
+
+
+        type: "doughnut",
+
+
+
+        data: {
+
+
+
+            labels: labels,
+
+
+
+            datasets: [{
+
+
+
+                data: values,
+
+
+
+                backgroundColor: [
+
+                    "#16a34a",
+
+                    "#f59e0b",
+
+                    "#3b82f6"
+
+                ],
+
+
+
+                borderWidth: 0,
+
+
+
+                hoverOffset: 8
+
+
+
+            }]
+
+
+
+        },
+
+
+
+        options: {
+
+
+
+            responsive: true,
+
+
+
+            maintainAspectRatio: false,
+
+
+
+            plugins: {
+
+
+
+                legend: {
+
+                    position: "bottom"
+
+                },
+
+
+
+                tooltip: {
+
+
+
+                    callbacks: {
+
+
+
+                        label: function(context) {
+
+
+
+                            return `${context.label}: ${context.raw} g`;
+
+
+
+                        }
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            }
+
+
+
+        }
+
+
+
+    });
+
+
+
+}
+
+
+
+
+
+// IMAGE ANALYSIS REQUEST
+
+
+
+visionForm.addEventListener("submit", async (event) => {
+
+
+
+    event.preventDefault();
+
+
+
+    if (!imageInput.files.length) {
+
+
+
+        showError("Please select an image first.");
+
+
+
+        return;
+
+
+
+    }
+
+
+
+    const formData = new FormData();
+
+
+
+    formData.append("image", imageInput.files[0]);
+
+
+
+    loading.style.display = "block";
+
+
+
+    errorBox.style.display = "none";
+
+
+
+    resultSection.style.display = "none";
+
+
+
+    chatbotSection.style.display = "none";
+
+
+
+    scanBtn.disabled = true;
+
+
+
+
+
+    try {
+
+
+
+        const response = await fetch("/api/vision", {
+
+
+
+            method: "POST",
+
+
+
+            body: formData
+
+
+
+        });
+
+
+
+        const data = await response.json();
+
+
+
+        if (!response.ok || !data.success) {
+
+
+
+            throw new Error(
+
+                data.error || "Analysis failed."
+
+            );
+
+
+
+        }
+
+
+
+        if (!data.analysis) {
+
+
+
+            throw new Error(
+
+                "The AI response could not be parsed. Please try again."
+
+            );
+
+
+
+        }
+
+
+
+        renderAnalysis(data.analysis);
+
+
+
+    } catch (error) {
+
+
+
+        showError(error.message);
+
+
+
+    } finally {
+
+
+
+        loading.style.display = "none";
+
+
+
+        scanBtn.disabled = false;
+
+
+
+    }
+
+
+
+});
+
+
+
+
+
+// NEW SCAN
+
+
+
+document.getElementById("newScanBtn")
+
+    .addEventListener("click", () => {
+
+
+
+        resultSection.style.display = "none";
+
+
+
+        chatbotSection.style.display = "none";
+
+
+
+        currentFoodAnalysis = null;
+
+        servingMultiplier.value = "1";
+
+
+
+        if (nutritionChart) {
+
+
+
+            nutritionChart.destroy();
+
+
+
+            nutritionChart = null;
+
+
+
+        }
+
+
+
+        imageInput.value = "";
+
+
+
+        imagePreview.src = "";
+
+
+
+        previewContainer.style.display = "none";
+
+
+
+        uploadArea.style.display = "block";
+
+
+
+        window.scrollTo({
+
+
+
+            top: 0,
+
+
+
+            behavior: "smooth"
+
+
+
+        });
+
+
+
+    });
+
+
+
+
+
+// CHATBOT
+
+
+
+const chatForm =
+
+    document.getElementById("chatForm");
+
+
+
+const chatQuestion =
+
+    document.getElementById("chatQuestion");
+
+
+
+const chatMessages =
+
+    document.getElementById("chatMessages");
+
+
+
+const chatSendBtn =
+
+    document.getElementById("chatSendBtn");
+
+
+
+
+
+function addMessage(message, type) {
+
+
+
+    const wrapper = document.createElement("div");
+
+
+
+    wrapper.className =
+
+        type === "user"
+
+            ? "user-message"
+
+            : "bot-message";
+
+
+
+    const content = document.createElement("div");
+
+
+
+    content.className = "message-content";
+
+
+
+    const text = document.createElement("p");
+
+
+
+    text.textContent = message;
+
+
+
+    content.appendChild(text);
+
+
+
+    wrapper.appendChild(content);
+
+
+
+    chatMessages.appendChild(wrapper);
+
+
+
+    chatMessages.scrollTop =
+
+        chatMessages.scrollHeight;
+
+
+
+    return wrapper;
+
+
+
+}
+
+
+
+
+
+chatForm.addEventListener("submit", async (event) => {
+
+
+
+    event.preventDefault();
+
+
+
+    const question = chatQuestion.value.trim();
+
+
+
+    if (!question || !currentFoodAnalysis) return;
+
+
+
+    addMessage(question, "user");
+
+
+
+    chatQuestion.value = "";
+
+
+
+    chatSendBtn.disabled = true;
+
+
+
+    const loadingMessage = addMessage(
+
+        "Thinking about your food label...",
+
+        "bot"
+
+    );
+
+
+
+
+
+    try {
+
+
+
+        const response = await fetch("/api/chat", {
+
+
+
+            method: "POST",
+
+
+
+            headers: {
+
+                "Content-Type": "application/json"
+
+            },
+
+
+
+            body: JSON.stringify({
+
+
+
+                question: question,
+
+
+
+                food_analysis: JSON.stringify(
+
+                    currentFoodAnalysis
+
+                )
+
+
+
+            })
+
+
+
+        });
+
+
+
+        const data = await response.json();
+
+
+
+        if (!response.ok || !data.success) {
+
+
+
+            throw new Error(
+
+                data.error || "Chat request failed."
+
+            );
+
+
+
+        }
+
+
+
+        loadingMessage.querySelector("p").textContent =
+
+            data.result;
+
+
+
+    } catch (error) {
+
+
+
+        loadingMessage.querySelector("p").textContent =
+
+            error.message;
+
+
+
+    } finally {
+
+
+
+        chatSendBtn.disabled = false;
+
+
+
+        chatMessages.scrollTop =
+
+            chatMessages.scrollHeight;
+
+
+
+    }
+
+
+
+});
+
+
+
+
+
+// SUGGESTED QUESTIONS
+
+
+
+document.querySelectorAll(".suggestion-btn")
+
+    .forEach((button) => {
+
+
+
+        button.addEventListener("click", () => {
+
+
+
+            chatQuestion.value =
+
+                button.textContent.trim();
+
+
+
+            chatQuestion.focus();
+
+
+
+        });
+
+
+
+    });
+
+
+
+</script>
+
+
+
+{% endblock %}
+
+

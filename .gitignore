@@ -1,5 +1,8 @@
-# .env
-.venv/
+.env
+.env.*
+!.env.example
+
 __pycache__/
-uploads/*
-!uploads/.gitkeep
+*.py[cod]
+venv/
+.venv/

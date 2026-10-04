@@ -1,0 +1,1092 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+Scan History | NutriLens AI
+{% endblock %}
+
+{% block content %}
+
+<main class="history-page">
+
+    <section class="history-header">
+        <div>
+            <span class="history-eyebrow">NUTRILENS AI</span>
+            <h1>Scan History</h1>
+            <p>View and manage your previously analyzed food products.</p>
+        </div>
+
+        <button class="clear-history-btn" onclick="clearAllHistory()">
+            Clear All History
+        </button>
+    </section>
+
+    <section class="history-stats">
+
+        <div class="history-stat-card">
+            <span>Total Scans</span>
+            <h2 id="totalScans">0</h2>
+        </div>
+
+        <div class="history-stat-card">
+            <span>Average Health Score</span>
+            <h2 id="averageScore">--</h2>
+        </div>
+
+        <div class="history-stat-card">
+            <span>Saved Products</span>
+            <h2 id="savedProducts">0</h2>
+        </div>
+
+    </section>
+
+    <section class="history-list-section">
+
+        <div class="history-list-heading">
+            <div>
+                <h2>Previously Scanned Products</h2>
+                <p>Your saved food analysis records.</p>
+            </div>
+        </div>
+
+        <div id="historyList" class="history-list">
+
+            <div class="history-empty">
+                <div class="history-empty-icon">🥗</div>
+                <h3>No scan history yet</h3>
+                <p>Analyze your first food product to see it here.</p>
+
+                <a href="{{ url_for('home') }}" class="history-scan-btn">
+                    Scan a Food Product
+                </a>
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+
+/* =====================================
+   HISTORY STORAGE
+===================================== */
+
+function getScanHistory() {
+    try {
+        const data = JSON.parse(
+            localStorage.getItem("nutrilens_history") || "[]"
+        );
+
+        return Array.isArray(data) ? data : [];
+
+    } catch (error) {
+        console.error("Could not read scan history:", error);
+        return [];
+    }
+}
+
+/* =====================================
+   HTML ESCAPING
+===================================== */
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+/* =====================================
+   RENDER HISTORY
+===================================== */
+
+function renderHistory() {
+
+    const history = getScanHistory();
+
+    const historyList = document.getElementById("historyList");
+
+    document.getElementById("totalScans").textContent = history.length;
+    document.getElementById("savedProducts").textContent = history.length;
+
+    const validScores = history
+        .map(item => Number(item.health_score))
+        .filter(score =>
+            Number.isFinite(score) &&
+            score >= 0 &&
+            score <= 100
+        );
+
+    const average = validScores.length
+        ? Math.round(
+            validScores.reduce((sum, score) => sum + score, 0) /
+            validScores.length
+        )
+        : null;
+
+    document.getElementById("averageScore").textContent =
+        average === null ? "--" : average + "/100";
+
+    if (history.length === 0) {
+
+        historyList.innerHTML = `
+            <div class="history-empty">
+                <div class="history-empty-icon">🥗</div>
+                <h3>No scan history yet</h3>
+                <p>Analyze your first food product to see it here.</p>
+
+                <a href="/" class="history-scan-btn">
+                    Scan a Food Product
+                </a>
+            </div>
+        `;
+
+        return;
+    }
+
+    historyList.innerHTML = history.map(item => {
+
+        const score = Number(item.health_score);
+
+        const hasScore =
+            Number.isFinite(score) &&
+            score >= 0 &&
+            score <= 100;
+
+        return `
+            <article class="history-card">
+
+                <div class="history-product-icon">🥫</div>
+
+                <div class="history-product-info">
+
+                    <h3>
+                        ${escapeHTML(item.product_name || "Food Product")}
+                    </h3>
+
+                    <p class="history-date">
+                        ${escapeHTML(
+                            item.date
+                                ? new Date(item.date).toLocaleString()
+                                : "Previously scanned"
+                        )}
+                    </p>
+
+                    <span class="history-score">
+                        ${hasScore
+                            ? escapeHTML(score + "/100")
+                            : "Score unavailable"}
+                    </span>
+
+                    <p class="history-category">
+                        ${escapeHTML(item.category || "Nutrition analysis")}
+                    </p>
+
+                </div>
+
+                <div class="history-actions">
+
+                    <button
+                        class="history-view-btn"
+                        onclick="viewScan('${escapeHTML(item.id)}')">
+                        View Details
+                    </button>
+
+                    <button
+                        class="history-delete-btn"
+                        onclick="deleteScan('${escapeHTML(item.id)}')">
+                        Delete
+                    </button>
+
+                </div>
+
+            </article>
+        `;
+    }).join("");
+}
+
+/* =====================================
+   REPORT DATA HELPERS
+===================================== */
+
+function getReportValue(object, keys, fallback = null) {
+
+    if (!object || typeof object !== "object") {
+        return fallback;
+    }
+
+    for (const key of keys) {
+
+        if (
+            object[key] !== undefined &&
+            object[key] !== null &&
+            object[key] !== ""
+        ) {
+            return object[key];
+        }
+    }
+
+    return fallback;
+}
+
+function getNutritionValue(nutrition, keys, unit = "") {
+
+    const field = getReportValue(nutrition, keys);
+
+    if (field === null) {
+        return "N/A";
+    }
+
+    let value = field;
+
+    if (typeof field === "object" && field !== null) {
+        value = field.value ?? field.amount ?? field.quantity;
+    }
+
+    if (value === undefined || value === null || value === "") {
+        return "N/A";
+    }
+
+    return escapeHTML(value) + unit;
+}
+
+function makeList(items, fallback) {
+
+    if (
+        items === undefined ||
+        items === null ||
+        items === ""
+    ) {
+        return `<li>${escapeHTML(fallback)}</li>`;
+    }
+
+    if (typeof items === "string") {
+
+        const cleaned = items.trim();
+
+        if (!cleaned) {
+            return `<li>${escapeHTML(fallback)}</li>`;
+        }
+
+        return cleaned
+            .split(/\n|•/)
+            .map(value => value.trim())
+            .filter(Boolean)
+            .map(value => `<li>${escapeHTML(value)}</li>`)
+            .join("");
+    }
+
+    if (!Array.isArray(items)) {
+
+        if (typeof items === "object") {
+
+            const entries = Object.entries(items);
+
+            if (entries.length === 0) {
+                return `<li>${escapeHTML(fallback)}</li>`;
+            }
+
+            return entries.map(([key, value]) => {
+
+                const displayValue =
+                    typeof value === "object"
+                        ? JSON.stringify(value)
+                        : value;
+
+                return `
+                    <li>
+                        <strong>${escapeHTML(key)}:</strong>
+                        ${escapeHTML(displayValue)}
+                    </li>
+                `;
+
+            }).join("");
+        }
+
+        return `<li>${escapeHTML(items)}</li>`;
+    }
+
+    if (items.length === 0) {
+        return `<li>${escapeHTML(fallback)}</li>`;
+    }
+
+    return items.map(entry => {
+
+        if (typeof entry === "object" && entry !== null) {
+
+            const value =
+                entry.name ||
+                entry.ingredient ||
+                entry.description ||
+                entry.observation ||
+                entry.note ||
+                JSON.stringify(entry);
+
+            return `<li>${escapeHTML(value)}</li>`;
+        }
+
+        return `<li>${escapeHTML(entry)}</li>`;
+
+    }).join("");
+}
+
+/* =====================================
+   VIEW PRODUCT DETAILS
+===================================== */
+
+function viewScan(id) {
+
+    const history = getScanHistory();
+
+    const item = history.find(
+        record => String(record.id) === String(id)
+    );
+
+    if (!item) {
+        alert("Scan record not found.");
+        return;
+    }
+
+    const analysis = item.analysis || {};
+
+    const nutrition =
+        analysis.nutrition ||
+        analysis.nutritional_information ||
+        analysis.nutrition_facts ||
+        {};
+
+    const score = analysis.health_score || {};
+
+    const productName = item.product_name || "Food Product";
+
+    const productCategory =
+        item.category ||
+        analysis.category ||
+        "Nutrition Analysis";
+
+    const scoreValue = Number(
+        score.score ?? item.health_score
+    );
+
+    const hasScore = Number.isFinite(scoreValue);
+
+    const validScore = hasScore
+        ? Math.max(0, Math.min(100, scoreValue))
+        : 0;
+
+    /* Ingredient field alternatives */
+
+    const ingredients = getReportValue(analysis, [
+        "ingredients",
+        "ingredient_list",
+        "ingredient_analysis",
+        "detected_ingredients"
+    ]);
+
+    /* Allergen field alternatives */
+
+    const allergenData = getReportValue(analysis, [
+        "allergen_assessment",
+        "allergen_information",
+        "allergen_analysis"
+    ], {});
+
+    const allergenNote = getReportValue(
+        allergenData,
+        ["note", "description", "summary", "message"],
+        "No allergen assessment is available."
+    );
+
+    const allergenStatus = getReportValue(
+        allergenData,
+        ["status", "result"],
+        "Not available"
+    );
+
+    const allergens = getReportValue(analysis, [
+        "allergens_declared_or_identified",
+        "allergens",
+        "identified_allergens",
+        "detected_allergens"
+    ]);
+
+    /* Observation alternatives */
+
+    const observations = getReportValue(analysis, [
+        "ai_observations",
+        "observations",
+        "health_observations",
+        "nutritional_observations",
+        "key_findings"
+    ]);
+
+    /* Label note alternatives */
+
+    const labelNotes = getReportValue(analysis, [
+        "label_notes",
+        "notes",
+        "additional_notes",
+        "warnings"
+    ]);
+
+    /* Additive alternatives */
+
+    const additives = getReportValue(analysis, [
+        "additives",
+        "preservatives",
+        "food_additives"
+    ]);
+
+    const summary = getReportValue(analysis, [
+        "summary",
+        "product_summary",
+        "ai_summary",
+        "description"
+    ], "No AI summary was saved for this scan.");
+
+    const report = `
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+
+        <meta charset="UTF-8">
+
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+
+        <title>${escapeHTML(productName)} | NutriLens AI</title>
+
+        <style>
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                background: #f5f8f5;
+                color: #17251b;
+                font-family: Arial, sans-serif;
+            }
+
+            .hero {
+                background: linear-gradient(135deg, #14532d, #15803d);
+                color: white;
+                padding: 42px 7%;
+            }
+
+            .brand {
+                font-size: 15px;
+                opacity: .85;
+                margin-bottom: 28px;
+                letter-spacing: .4px;
+            }
+
+            .hero-content {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 25px;
+                flex-wrap: wrap;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+                margin: 0 0 12px;
+                overflow-wrap: anywhere;
+            }
+
+            .hero p {
+                color: #e0f2e5;
+                margin: 8px 0;
+            }
+
+            .score-box {
+                background: white;
+                color: #166534;
+                padding: 24px 32px;
+                border-radius: 20px;
+                text-align: center;
+                min-width: 160px;
+                box-shadow: 0 8px 25px #0002;
+            }
+
+            .score-box strong {
+                display: block;
+                font-size: 36px;
+            }
+
+            .score-box span {
+                font-size: 13px;
+                color: #64748b;
+            }
+
+            .container {
+                max-width: 1150px;
+                margin: 35px auto;
+                padding: 0 22px;
+            }
+
+            .section {
+                background: white;
+                padding: 30px;
+                border-radius: 20px;
+                border: 1px solid #e5ece6;
+                box-shadow: 0 8px 25px rgba(21,65,35,.05);
+                margin-bottom: 25px;
+            }
+
+            .section h2 {
+                font-size: 23px;
+                color: #14532d;
+                margin: 0 0 22px;
+            }
+
+            .section-icon {
+                margin-right: 8px;
+            }
+
+            .nutrition-grid {
+                display: grid;
+                grid-template-columns: repeat(
+                    auto-fit,
+                    minmax(150px, 1fr)
+                );
+                gap: 16px;
+            }
+
+            .nutrition-card {
+                padding: 23px;
+                border-radius: 16px;
+                background: #f2faf3;
+                border: 1px solid #e0eee2;
+                transition: .2s ease;
+            }
+
+            .nutrition-card:hover {
+                transform: translateY(-3px);
+            }
+
+            .nutrition-card span {
+                display: block;
+                font-size: 13px;
+                color: #718078;
+                margin-bottom: 12px;
+            }
+
+            .nutrition-card strong {
+                color: #166534;
+                font-size: 25px;
+                overflow-wrap: anywhere;
+            }
+
+            .score-label {
+                color: #166534;
+                font-weight: 700;
+                font-size: 17px;
+            }
+
+            .progress {
+                width: 100%;
+                height: 13px;
+                background: #e5e7eb;
+                border-radius: 20px;
+                overflow: hidden;
+                margin: 18px 0;
+            }
+
+            .progress-fill {
+                height: 100%;
+                width: ${validScore}%;
+                background: linear-gradient(90deg, #f59e0b, #16a34a);
+                border-radius: 20px;
+            }
+
+            .description {
+                line-height: 1.8;
+                color: #53645a;
+                white-space: pre-line;
+            }
+
+            .report-list {
+                padding-left: 22px;
+                line-height: 1.9;
+                color: #53645a;
+            }
+
+            .report-list li {
+                padding-left: 5px;
+                margin-bottom: 6px;
+            }
+
+            .info-note {
+                background: #f2faf3;
+                border-left: 4px solid #15803d;
+                padding: 15px 18px;
+                border-radius: 8px;
+                color: #53645a;
+                line-height: 1.7;
+            }
+
+            .status {
+                display: inline-block;
+                background: #dcfce7;
+                color: #166534;
+                border-radius: 8px;
+                padding: 7px 12px;
+                font-size: 13px;
+                font-weight: 700;
+                margin: 10px 0;
+            }
+
+            .print-btn {
+                margin-top: 22px;
+                padding: 13px 21px;
+                border: none;
+                border-radius: 11px;
+                background: white;
+                color: #166534;
+                font-weight: 700;
+                cursor: pointer;
+                transition: .2s ease;
+            }
+
+            .print-btn:hover {
+                background: #dcfce7;
+            }
+
+            .footer {
+                text-align: center;
+                color: #718078;
+                padding: 30px;
+                font-size: 13px;
+                line-height: 1.8;
+            }
+
+            @media print {
+
+                body {
+                    background: white;
+                }
+
+                .print-btn {
+                    display: none;
+                }
+
+                .section {
+                    box-shadow: none;
+                    break-inside: avoid;
+                }
+
+            }
+
+            @media(max-width: 600px) {
+
+                .hero {
+                    padding: 30px 22px;
+                }
+
+                .hero h1 {
+                    font-size: 28px;
+                }
+
+                .section {
+                    padding: 21px;
+                }
+
+                .nutrition-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+
+                .nutrition-card {
+                    padding: 16px;
+                }
+
+                .nutrition-card strong {
+                    font-size: 20px;
+                }
+
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+
+        <header class="hero">
+
+            <div class="brand">
+                🥗 NutriLens AI · Food Intelligence Report
+            </div>
+
+            <div class="hero-content">
+
+                <div>
+
+                    <h1>${escapeHTML(productName)}</h1>
+
+                    <p>${escapeHTML(productCategory)}</p>
+
+                    <p>
+                        Scanned:
+                        ${escapeHTML(
+                            item.date
+                                ? new Date(item.date).toLocaleString()
+                                : "Unknown date"
+                        )}
+                    </p>
+
+                </div>
+
+                <div class="score-box">
+
+                    <strong>
+                        ${hasScore ? escapeHTML(scoreValue) : "N/A"}/100
+                    </strong>
+
+                    <span>Health Score</span>
+
+                </div>
+
+            </div>
+
+            <button class="print-btn" onclick="window.print()">
+                Print / Save as PDF
+            </button>
+
+        </header>
+
+        <main class="container">
+
+            <!-- NUTRITION -->
+
+            <section class="section">
+
+                <h2>📊 Nutrition Dashboard</h2>
+
+                <div class="nutrition-grid">
+
+                    <div class="nutrition-card">
+                        <span>Calories</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["calories", "energy", "kcal"]
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Protein</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["protein", "proteins"],
+                                " g"
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Carbohydrates</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["carbs", "carbohydrates", "total_carbohydrates"],
+                                " g"
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Total Fat</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["fat", "total_fat", "fats"],
+                                " g"
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Total Sugar</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["sugar", "total_sugars", "sugars"],
+                                " g"
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Sodium</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["sodium", "salt"],
+                                " mg"
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Dietary Fiber</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["fiber", "dietary_fiber"],
+                                " g"
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Added Sugars</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["added_sugars", "added_sugar"],
+                                " g"
+                            )}
+                        </strong>
+                    </div>
+
+                    <div class="nutrition-card">
+                        <span>Saturated Fat</span>
+                        <strong>
+                            ${getNutritionValue(
+                                nutrition,
+                                ["saturated_fat", "saturated_fats"],
+                                " g"
+                            )}
+                        </strong>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- HEALTH SCORE -->
+
+            <section class="section">
+
+                <h2>💚 Health Score Assessment</h2>
+
+                <p class="score-label">
+                    ${escapeHTML(
+                        score.category ||
+                        item.health_category ||
+                        "Score assessment unavailable"
+                    )}
+                </p>
+
+                <div class="progress">
+                    <div class="progress-fill"></div>
+                </div>
+
+                <p class="description">
+                    This score is an informational estimate based on
+                    available nutrition label data. It is not a medical
+                    assessment.
+                </p>
+
+            </section>
+
+            <!-- SUMMARY -->
+
+            <section class="section">
+
+                <h2>✨ AI Product Summary</h2>
+
+                <p class="description">
+                    ${escapeHTML(summary)}
+                </p>
+
+            </section>
+
+            <!-- INGREDIENTS -->
+
+            <section class="section">
+
+                <h2>🧪 Ingredient Intelligence</h2>
+
+                <ul class="report-list">
+                    ${makeList(
+                        ingredients,
+                        "Ingredients were not detected. Try uploading a clearer image of the ingredients panel."
+                    )}
+                </ul>
+
+            </section>
+
+            <!-- ALLERGENS -->
+
+            <section class="section">
+
+                <h2>⚠️ Allergen Information</h2>
+
+                <div class="info-note">
+                    ${escapeHTML(allergenNote)}
+                </div>
+
+                <p>
+                    <strong>Status:</strong>
+                    <span class="status">
+                        ${escapeHTML(allergenStatus)}
+                    </span>
+                </p>
+
+                <h3>Identified Allergens</h3>
+
+                <ul class="report-list">
+                    ${makeList(
+                        allergens,
+                        "No allergens could be identified from the available label information."
+                    )}
+                </ul>
+
+            </section>
+
+            <!-- ADDITIVES -->
+
+            <section class="section">
+
+                <h2>🔬 Additives & Preservatives</h2>
+
+                <ul class="report-list">
+                    ${makeList(
+                        additives,
+                        "No additive information was extracted from this scan."
+                    )}
+                </ul>
+
+            </section>
+
+            <!-- OBSERVATIONS -->
+
+            <section class="section">
+
+                <h2>🤖 AI Observations</h2>
+
+                <ul class="report-list">
+                    ${makeList(
+                        observations,
+                        "No additional observations were returned by the AI analysis."
+                    )}
+                </ul>
+
+            </section>
+
+            <!-- NOTES -->
+
+            <section class="section">
+
+                <h2>📝 Label Notes</h2>
+
+                <ul class="report-list">
+                    ${makeList(
+                        labelNotes,
+                        "No additional label notes were extracted."
+                    )}
+                </ul>
+
+            </section>
+
+            <div class="footer">
+
+                © 2026 NutriLens AI
+
+                <br>
+
+                Powered by Microsoft Azure AI Foundry
+
+                <br>
+
+                Nutrition information is based on the analyzed label
+                and may be incomplete or inaccurate.
+
+            </div>
+
+        </main>
+
+    </body>
+    </html>
+    `;
+
+    const newWindow = window.open("", "_blank");
+
+    if (!newWindow) {
+        alert("Please allow pop-ups to view scan details.");
+        return;
+    }
+
+    newWindow.document.open();
+    newWindow.document.write(report);
+    newWindow.document.close();
+}
+
+/* =====================================
+   DELETE SINGLE SCAN
+===================================== */
+
+function deleteScan(id) {
+
+    if (!confirm("Delete this scan from your history?")) {
+        return;
+    }
+
+    const updatedHistory = getScanHistory()
+        .filter(item => String(item.id) !== String(id));
+
+    localStorage.setItem(
+        "nutrilens_history",
+        JSON.stringify(updatedHistory)
+    );
+
+    renderHistory();
+}
+
+/* =====================================
+   CLEAR ALL HISTORY
+===================================== */
+
+function clearAllHistory() {
+
+    const history = getScanHistory();
+
+    if (history.length === 0) {
+        alert("Your scan history is already empty.");
+        return;
+    }
+
+    if (!confirm("Are you sure you want to delete all scan history?")) {
+        return;
+    }
+
+    localStorage.removeItem("nutrilens_history");
+
+    renderHistory();
+}
+
+/* =====================================
+   INITIALIZE
+===================================== */
+
+document.addEventListener("DOMContentLoaded", renderHistory);
+
+</script>
+
+{% endblock %}

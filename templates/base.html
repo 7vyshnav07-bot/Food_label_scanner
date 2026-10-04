@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}
+        NutriLens AI | Food Intelligence
+        {% endblock %}
+    </title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+
+    <nav class="navbar">
+
+        <div class="logo">
+            🥗 NutriLens AI
+        </div>
+
+        <div class="nav-links">
+    <a href="{{ url_for('home') }}" class="{% if request.path == '/' %}active{% endif %}">Home</a>
+
+    <a href="{{ url_for('text_analysis') }}" class="{% if request.path == '/text-analysis' %}active{% endif %}">Text Analyzer</a>
+
+    
+
+    <a href="{{ url_for('history') }}" class="{% if request.path == '/history' %}active{% endif %}">Scan History</a>
+</div>
+
+    </nav>
+
+    <!-- PAGE CONTENT -->
+
+    {% block content %}
+    {% endblock %}
+
+    <!-- FOOTER -->
+
+    <footer>
+        <p>© 2026 NutriLens AI</p>
+        <p>Powered by Microsoft Azure AI Foundry</p>
+    </footer>
+
+    <!-- PAGE SCRIPTS -->
+
+    {% block scripts %}
+    {% endblock %}
+
+</body>
+
+</html>

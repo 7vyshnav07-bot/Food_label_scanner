@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer - NutriLens AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">🥗 NutriLens AI</div>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('text_analysis') }}" class="active">Text Analyzer</a>
+            <a href="{{ url_for('history') }}">Scan History</a>
+        </div>
+    </nav>
+
+    <section class="hero text-hero">
+        <div class="hero-content">
+            <div class="badge">📝 Text Analysis</div>
+            <h1>Analyze your food<br><span>label text.</span></h1>
+            <p>Paste ingredients or nutrition information and let AI explain the label in simple language.</p>
+        </div>
+    </section>
+
+    <main class="container">
+        <section class="scanner-card">
+            <div class="section-heading">
+                <div class="icon-box">📝</div>
+                <div>
+                    <h2>Food Label Text Analyzer</h2>
+                    <p>Paste the text from a food label below.</p>
+                </div>
+            </div>
+
+            <form id="textForm">
+                <label for="textInput" class="input-label">Food Label Text</label>
+                <textarea id="textInput" name="text" rows="12" maxlength="20000"
+                    placeholder="Example:
+
+Product Name: Chocolate Biscuits
+
+Ingredients:
+Wheat flour, sugar, palm oil, cocoa powder, milk solids, soy lecithin.
+
+Nutrition:
+Calories: 160
+Total Fat: 7g
+Sodium: 115mg
+Total Carbohydrates: 25g
+Sugars: 14g
+Protein: 1g
+
+Allergens:
+Contains wheat, milk and soy." required></textarea>
+
+                <div class="character-count">
+                    <span id="characterCount">0 characters</span>
+                    <span>Maximum 20,000 characters</span>
+                </div>
+
+                <button type="submit" class="scan-btn" id="analyzeBtn">🧠 Analyze Text</button>
+            </form>
+
+            <div class="loading" id="loading" style="display:none;">
+                <div class="spinner"></div>
+                <h3>Analyzing your text...</h3>
+                <p>Azure AI is processing the food label information.</p>
+            </div>
+
+            <div class="error-box" id="errorBox" style="display:none;">
+                <strong>⚠️ Something went wrong</strong>
+                <p id="errorMessage"></p>
+            </div>
+        </section>
+
+        <section class="result-card" id="resultSection" style="display:none;">
+            <div class="result-header">
+                <div>
+                    <span class="result-label">AI ANALYSIS</span>
+                    <h2>Food Text Analysis</h2>
+                </div>
+                <div class="ai-badge">GPT-4.1-mini</div>
+            </div>
+            <div class="result-content" id="resultContent"></div>
+        </section>
+
+        <section class="chatbot-card" id="chatbotSection" style="display:none;">
+            <div class="chatbot-header">
+                <div class="chatbot-title">
+                    <div class="chatbot-icon">🤖</div>
+                    <div>
+                        <span>AI FOOD ASSISTANT</span>
+                        <h2>Ask about this food</h2>
+                    </div>
+                </div>
+                <div class="ai-badge">GPT-4.1-mini</div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="bot-message">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <strong>Food Assistant</strong>
+                        <p>Your food label has been analyzed. Ask me anything about this food.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="chatForm" class="chat-form">
+                <input type="text" id="chatQuestion" placeholder="Ask something about this food..."
+                       autocomplete="off" required>
+                <button type="submit" id="chatSendBtn">Send</button>
+            </form>
+        </section>
+
+        <section class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🧾</div>
+                <h3>Ingredient Analysis</h3>
+                <p>Understand ingredients listed in your food product.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚠️</div>
+                <h3>Allergen Detection</h3>
+                <p>Identify allergens explicitly mentioned in the provided text.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💡</div>
+                <h3>Simple Explanation</h3>
+                <p>Get an easy-to-understand summary of the food label.</p>
+            </div>
+        </section>
+
+        <section class="text-analyzer-banner">
+            <div>
+                <span>📷 WANT TO SCAN AN IMAGE?</span>
+                <h2>Have a photo of the food label?</h2>
+                <p>Upload the image and let our Image Analyzer extract the information.</p>
+            </div>
+            <a href="{{ url_for('home') }}" class="text-btn">Open Image Analyzer →</a>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2026 NutriLens AI</p>
+        <p>Powered by Microsoft Azure AI Foundry</p>
+    </footer>
+
+    <script>
+        const textForm = document.getElementById("textForm");
+        const textInput = document.getElementById("textInput");
+        const characterCount = document.getElementById("characterCount");
+        const analyzeBtn = document.getElementById("analyzeBtn");
+        const loading = document.getElementById("loading");
+        const errorBox = document.getElementById("errorBox");
+        const errorMessage = document.getElementById("errorMessage");
+        const resultSection = document.getElementById("resultSection");
+        const resultContent = document.getElementById("resultContent");
+        const chatbotSection = document.getElementById("chatbotSection");
+        const chatForm = document.getElementById("chatForm");
+        const chatQuestion = document.getElementById("chatQuestion");
+        const chatMessages = document.getElementById("chatMessages");
+        const chatSendBtn = document.getElementById("chatSendBtn");
+
+        let currentFoodAnalysis = "";
+
+        textInput.addEventListener("input", () => {
+            characterCount.textContent = `${textInput.value.length} characters`;
+        });
+
+        function escapeHTML(value) {
+            return String(value ?? "Not available").replace(/[&<>"']/g, char => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            })[char]);
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorBox.style.display = "block";
+            errorBox.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+
+        function metricValue(key) {
+            const item = (currentAnalysisData?.nutrition || {})[key] || {};
+            const value = item.value;
+            return value === null || value === undefined || value === ""
+                ? "N/A"
+                : `${value} ${item.unit || ""}`.trim();
+        }
+
+        let currentAnalysisData = null;
+
+        function renderTextAnalysis(data, scoreFromResponse) {
+            currentAnalysisData = data || {};
+            const nutrition = data.nutrition || {};
+            const score = scoreFromResponse ?? data.health_score ?? null;
+            const scoreValue = typeof score === "number" ? score :
+                (score && (score.score ?? score.value));
+            const scoreCategory = typeof score === "object" && score
+                ? (score.category || score.label || score.rating || "Indicative score")
+                : "Indicative nutrition score";
+
+            const cards = [
+                ["Calories", "calories", "🔥"],
+                ["Protein", "protein", "💪"],
+                ["Carbohydrates", "carbohydrates", "🍞"],
+                ["Total Fat", "total_fat", "🥑"],
+                ["Total Sugars", "total_sugars", "🍬"],
+                ["Sodium", "sodium", "🧂"],
+                ["Fiber", "fiber", "🌾"],
+                ["Saturated Fat", "saturated_fat", "🧈"]
+            ].map(([label, key, icon]) => `
+                <div class="nutrition-card">
+                    <div class="nutrition-icon">${icon}</div>
+                    <span>${label}</span>
+                    <h3>${escapeHTML(metricValue(key))}</h3>
+                    <small>${escapeHTML(nutrition[key]?.basis || "")}</small>
+                </div>
+            `).join("");
+
+            const ingredients = Array.isArray(data.ingredients) ? data.ingredients : [];
+            const ingredientList = ingredients.length
+                ? `<div class="ingredient-tags">${ingredients.map(item => {
+                    const name = typeof item === "string" ? item : item?.name;
+                    return `<span class="ingredient-tag">${escapeHTML(name)}</span>`;
+                }).join("")}</div>`
+                : "<p>No ingredients were identified in the supplied text.</p>";
+
+            const allergens = Array.isArray(data.allergens_declared_or_identified)
+                ? data.allergens_declared_or_identified : [];
+            const allergenList = allergens.length
+                ? allergens.map(item => `
+                    <div class="allergen-item">
+                        <strong>${escapeHTML(item?.name)}</strong>
+                        <p>Evidence: ${escapeHTML(item?.evidence)}</p>
+                        <small>Source: ${escapeHTML(item?.source_type)}</small>
+                    </div>`).join("")
+                : "<p>No allergen evidence was identified in the supplied text.</p>";
+
+            const assessment = data.allergen_assessment || {};
+            const observations = Array.isArray(data.nutrition_observations)
+                ? data.nutrition_observations : [];
+            const notes = Array.isArray(data.label_notes) ? data.label_notes : [];
+            const additives = Array.isArray(data.additives) ? data.additives : [];
+
+            resultContent.innerHTML = `
+                <div class="text-analysis-dashboard">
+                    <div class="analysis-product">
+                        <span class="result-label">PRODUCT IDENTIFICATION</span>
+                        <h2>${escapeHTML(data.product_name || "Food Product")}</h2>
+                        <p>${escapeHTML(data.category || "Category not available")}</p>
+                        <small>Serving size: ${escapeHTML(data.serving_size)}</small>
+                    </div>
+
+                    <div class="health-score-panel">
+                        <div>
+                            <span class="result-label">NUTRITION PROFILE SCORE</span>
+                            <h2>${escapeHTML(scoreValue ?? "N/A")}${scoreValue !== null && scoreValue !== undefined ? "/100" : ""}</h2>
+                            <p>${escapeHTML(scoreCategory)}</p>
+                        </div>
+                        <p class="score-note">Indicative label-based information, not a medical assessment. Missing label values may affect the score.</p>
+                    </div>
+
+                    <h3 class="analysis-section-title">Nutrition Overview</h3>
+                    <div class="nutrition-grid">${cards}</div>
+
+                    <h3 class="analysis-section-title">Ingredient Intelligence</h3>
+                    <div class="analysis-info-panel">${ingredientList}</div>
+
+                    <h3 class="analysis-section-title">Allergen Assessment</h3>
+                    <div class="analysis-info-panel">
+                        <strong>Status: ${escapeHTML(assessment.status || "Not available")}</strong>
+                        <p>${escapeHTML(assessment.note)}</p>
+                        ${allergenList}
+                        <small>Not identifying an allergen does not mean the product is allergen-free or safe for someone with an allergy.</small>
+                    </div>
+
+                    <h3 class="analysis-section-title">AI Observations</h3>
+                    <div class="analysis-info-panel">
+                        ${observations.length ? `<ul>${observations.map(item => `<li>${escapeHTML(item)}</li>`).join("")}</ul>` : "<p>No additional observations available.</p>"}
+                    </div>
+
+                    <h3 class="analysis-section-title">Additives</h3>
+                    <div class="analysis-info-panel">
+                        ${additives.length ? additives.map(item => `<p><strong>${escapeHTML(item?.name)}</strong> — ${escapeHTML(item?.common_function)}</p>`).join("") : "<p>No additives were identified in the supplied text.</p>"}
+                    </div>
+
+                    <h3 class="analysis-section-title">Label Notes</h3>
+                    <div class="analysis-info-panel">
+                        ${notes.length ? `<ul>${notes.map(item => `<li>${escapeHTML(item)}</li>`).join("")}</ul>` : "<p>No additional label notes.</p>"}
+                    </div>
+
+                    <h3 class="analysis-section-title">Product Summary</h3>
+                    <div class="analysis-info-panel"><p>${escapeHTML(data.summary || "No summary available.")}</p></div>
+                </div>
+            `;
+        }
+
+        textForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const text = textInput.value.trim();
+            if (!text) {
+                showError("Please enter some food label text.");
+                return;
+            }
+
+            loading.style.display = "block";
+            errorBox.style.display = "none";
+            resultSection.style.display = "none";
+            chatbotSection.style.display = "none";
+            analyzeBtn.disabled = true;
+            analyzeBtn.style.display = "none";
+
+            try {
+                const response = await fetch("/api/text-analysis", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.success === false || data.error) {
+                    throw new Error(data.error || "Text analysis failed.");
+                }
+
+                currentFoodAnalysis = JSON.stringify(data.analysis || data.result || {});
+                
+let parsed = data.analysis;
+
+if (!parsed && data.result) {
+    try {
+        let raw = data.result.trim();
+
+        // Remove Markdown code fences if the AI returns them
+        raw = raw.replace(/^```json\s*/i, "");
+        raw = raw.replace(/^```\s*/, "");
+        raw = raw.replace(/\s*```$/, "");
+
+        parsed = JSON.parse(raw);
+    } catch (error) {
+        console.error("Could not parse AI response:", error);
+        console.log("Raw AI response:", data.result);
+    }
+}
+
+if (parsed && typeof parsed === "object") {
+    renderTextAnalysis(parsed, data.health_score);
+} else {
+    resultContent.innerHTML = `
+        <div class="error-message">
+            The AI returned information, but it could not be converted
+            into the nutrition dashboard. Please try again.
+        </div>
+    `;
+}
+
+
+                if (parsed) {
+                    renderTextAnalysis(parsed, data.health_score);
+                } else {
+                    resultContent.textContent = data.result || "No result returned.";
+                }
+
+                resultSection.style.display = "block";
+                chatbotSection.style.display = "block";
+                resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+            } catch (error) {
+                showError(error.message || "Unable to analyze the text. Please try again.");
+            } finally {
+                loading.style.display = "none";
+                analyzeBtn.disabled = false;
+                analyzeBtn.style.display = "block";
+            }
+        });
+
+        function addChatMessage(message, type) {
+            const row = document.createElement("div");
+            row.className = type === "user" ? "user-message" : "bot-message";
+            const avatar = document.createElement("div");
+            avatar.className = "message-avatar";
+            avatar.textContent = type === "user" ? "🙂" : "🤖";
+            const content = document.createElement("div");
+            content.className = "message-content";
+            const paragraph = document.createElement("p");
+            paragraph.textContent = message;
+            content.appendChild(paragraph);
+            row.append(avatar, content);
+            chatMessages.appendChild(row);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        chatForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const question = chatQuestion.value.trim();
+            if (!question || !currentFoodAnalysis) return;
+
+            addChatMessage(question, "user");
+            chatQuestion.value = "";
+            chatSendBtn.disabled = true;
+
+            try {
+                const response = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        question,
+                        food_analysis: currentFoodAnalysis
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || data.success === false || data.error) {
+                    throw new Error(data.error || "Chat request failed.");
+                }
+                addChatMessage(data.result || "No answer returned.", "bot");
+            } catch (error) {
+                addChatMessage(error.message || "Sorry, I couldn't answer that right now.", "bot");
+            } finally {
+                chatSendBtn.disabled = false;
+                chatQuestion.focus();
+            }
+        });
+    </script>
+</body>
+</html>
