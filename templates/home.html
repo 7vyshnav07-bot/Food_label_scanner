@@ -1014,7 +1014,7 @@
         </div>
 
 
-
+  
     </section>
 
 
@@ -1143,35 +1143,35 @@
 
 
 
-        <form id="chatForm" class="chat-form">
+      <form id="chatForm" class="chat-form">
 
+    <div class="chat-input-wrapper">
 
+        <input
+            type="text"
+            id="chatQuestion"
+            placeholder="Ask about this food..."
+            autocomplete="off"
+            required
+        >
 
-            <input
+        <button
+            type="button"
+            id="voiceBtn"
+            class="voice-btn"
+            title="Speak your question"
+            aria-label="Speak your question"
+        >
+            🎤
+        </button>
 
-                type="text"
+    </div>
 
-                id="chatQuestion"
+    <button type="submit" id="chatSendBtn">
+        Send ➤
+    </button>
 
-                placeholder="Ask about this food..."
-
-                autocomplete="off"
-
-                required
-
-            >
-
-
-
-            <button type="submit" id="chatSendBtn">
-
-                Send ➤
-
-            </button>
-
-
-
-        </form>
+</form>
 
 
 
@@ -3272,7 +3272,84 @@ const chatSendBtn =
 
     document.getElementById("chatSendBtn");
 
+// ===============================
+// SPEECH TO TEXT
+// ===============================
 
+const voiceBtn = document.getElementById("voiceBtn");
+
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+if (SpeechRecognition && voiceBtn) {
+
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-IN";
+
+    voiceBtn.addEventListener("click", () => {
+
+        try {
+            recognition.start();
+
+            voiceBtn.classList.add("listening");
+            voiceBtn.textContent = "🔴";
+            voiceBtn.title = "Listening...";
+
+        } catch (error) {
+            console.log("Speech recognition is already running.");
+        }
+    });
+
+    recognition.onresult = (event) => {
+
+        const transcript =
+            event.results[0][0].transcript;
+
+        chatQuestion.value = transcript;
+
+        chatQuestion.focus();
+    };
+
+    recognition.onend = () => {
+
+        voiceBtn.classList.remove("listening");
+
+        voiceBtn.textContent = "🎤";
+        voiceBtn.title = "Speak your question";
+    };
+
+    recognition.onerror = (event) => {
+
+        console.error(
+            "Speech recognition error:",
+            event.error
+        );
+
+        voiceBtn.classList.remove("listening");
+
+        voiceBtn.textContent = "🎤";
+        voiceBtn.title = "Speak your question";
+
+        if (event.error === "not-allowed") {
+
+            alert(
+                "Microphone permission was denied. " +
+                "Please allow microphone access in your browser."
+            );
+        }
+    };
+
+} else if (voiceBtn) {
+
+    voiceBtn.disabled = true;
+
+    voiceBtn.title =
+        "Speech recognition is not supported in this browser";
+}
 
 
 
